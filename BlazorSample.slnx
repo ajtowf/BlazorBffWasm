@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="BackendApplication/BackendApplication.csproj" Id="e47afe7f-1d55-4afe-b396-8f799a0648ad" />
+  <Project Path="BFF/BFF.csproj" />
+  <Project Path="BlazorWasm/BlazorWasm.csproj" />
+</Solution>

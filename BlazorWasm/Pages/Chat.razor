@@ -1,0 +1,67 @@
+﻿@page "/chat"
+@using Microsoft.AspNetCore.Http.Connections
+@using Microsoft.AspNetCore.SignalR.Client
+
+<h3>SignalR</h3>
+
+<button @onclick="ConnectAsync" disabled="@IsConnected">
+    @(IsConnected ? "Connected" : "Connect")
+</button>
+
+<p>Status: @Status</p>
+
+<button @onclick="Send" disabled="@(!IsConnected)">Send</button>
+
+<ul>
+    @foreach (var msg in messages)
+    {
+        <li>@msg</li>
+    }
+</ul>
+
+@code {
+    [Inject] private NavigationManager Navigation { get; set; }
+
+    HubConnection? connection;
+    List<string> messages = new();
+
+    private bool IsConnected;
+    private string Status = "Disconnected"; 
+
+    private async Task ConnectAsync()
+    {
+        if (connection is null)
+        {
+            var hubUrl = new Uri(new Uri(Navigation.BaseUri), "hubapi/chat");
+
+            connection = new HubConnectionBuilder()
+                .WithUrl(hubUrl)
+                .WithAutomaticReconnect()
+                .Build();
+
+            connection.On<string>("Receive", msg =>
+            {
+                messages.Add(msg);
+                InvokeAsync(StateHasChanged);
+            });
+        }
+
+        try
+        {
+            Status = "Connecting...";
+            await connection.StartAsync();
+
+            IsConnected = true;
+            Status = "Connected";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Failed: {ex.Message}";
+        }
+    }
+
+    async Task Send()
+    {
+        await connection!.InvokeAsync("Send", "Hello from WASM");
+    }
+}

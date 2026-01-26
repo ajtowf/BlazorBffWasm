@@ -1,0 +1,78 @@
+﻿@page "/weather"
+@using System.Text.Json
+@inject HttpClient Http
+
+<PageTitle>Weather</PageTitle>
+
+<h1>Weather</h1>
+
+<p>This component demonstrates fetching data from a BFF endpoint.</p>
+
+@if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Date</th>
+            <th aria-label="Temperature in Celsius">Temp. (C)</th>
+            <th aria-label="Temperature in Fahrenheit">Temp. (F)</th>
+            <th>Summary</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var forecast in forecasts)
+        {
+            <tr>
+                <td>@forecast.Date.ToShortDateString()</td>
+                <td>@forecast.TemperatureC</td>
+                <td>@forecast.TemperatureF</td>
+                <td>@forecast.Summary</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <p>Remote API call:</p>
+    <pre>
+        @remoteApiCallResult
+    </pre>
+}
+
+@code {
+    private WeatherForecast[]? forecasts;
+    private string? remoteApiCallResult;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var resp = await Http.GetAsync("/remoteapi/weatherforecast");
+            resp.EnsureSuccessStatusCode();
+
+            var result = await resp.Content.ReadFromJsonAsync<WeatherForecast[]>();
+            var formatted = JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true });
+            remoteApiCallResult = formatted;
+        }
+        catch (Exception e)
+        {
+            remoteApiCallResult = e.Message;
+        }
+
+        forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("/api/data");
+    }
+
+    public class WeatherForecast
+    {
+        public DateOnly Date { get; set; }
+
+        public int TemperatureC { get; set; }
+
+        public string? Summary { get; set; }
+
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
+}
