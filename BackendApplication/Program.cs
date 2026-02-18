@@ -1,46 +1,11 @@
-using BackendApplication.Hubs;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using BackendApplication;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSignalR();
-builder.Services.AddControllers();
-
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.Authority = "https://demo.duendesoftware.com";
-        options.Audience = "api";
-
-        options.RequireHttpsMetadata = true;
-    });
-
-builder.Services.AddAuthorization();
-
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-    {
-        policy
-            .AllowAnyOrigin() // Blazor WASM origin
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
+var startup = new Startup(builder.Configuration, builder.Environment);
+startup.ConfigureServices(builder.Services);
 
 var app = builder.Build();
+startup.Configure(app, app.Environment);
 
-// Configure the HTTP request pipeline.
-
-app.UseHttpsRedirection();
-
-app.UseCors();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapHub<ChatHub>("/chat");
-app.MapControllers();
-
-app.Run();
+await app.RunAsync();
