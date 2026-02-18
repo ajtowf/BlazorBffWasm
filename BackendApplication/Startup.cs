@@ -1,4 +1,5 @@
 ﻿using BackendApplication.Hubs;
+using BackendApplication.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.IdentityModel.Tokens.Jwt;
 
@@ -28,8 +29,11 @@ public class Startup
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
-                options.Authority = "https://demo.duendesoftware.com";
-                options.Audience = "api";
+                var authOptions = new AuthOptions();
+                Configuration.GetSection(AuthOptions.SectionName).Bind(authOptions);
+
+                options.Authority = authOptions.Authority;
+                options.Audience = authOptions.Audience;
 
                 options.RequireHttpsMetadata = true;
             });

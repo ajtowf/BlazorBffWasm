@@ -1,6 +1,9 @@
-﻿using Duende.Bff;
+﻿using BFF.Options;
+using Duende.Bff;
 using Duende.Bff.Yarp;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 
 namespace BFF;
 
@@ -17,25 +20,27 @@ public class Startup(IConfiguration configuration)
         services
              .AddAuthentication(options =>
              {
-                 options.DefaultScheme = "Cookies";
-                 options.DefaultChallengeScheme = "oidc";
+                 options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                 options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
              })
-            .AddCookie("Cookies")
-
-            .AddOpenIdConnect("oidc", options =>
+            .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme)
+            .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, options =>
             {
-                options.Authority = "https://demo.duendesoftware.com";
-                options.ClientId = "interactive.confidential";
-                options.ClientSecret = "secret";
+                var authOptions = new AuthOptions();
+                Configuration.GetSection(AuthOptions.SectionName).Bind(authOptions);
+                
+                options.Authority = authOptions.Authority;
+                options.ClientId = authOptions.ClientId;
+                options.ClientSecret = authOptions.ClientSecret;
 
-                options.ResponseType = "code";
-                options.ResponseMode = "query";
+                options.ResponseType = authOptions.ResponseType;
+                options.ResponseMode = authOptions.ResponseMode;
 
                 options.Scope.Clear();
-                options.Scope.Add("openid");
-                options.Scope.Add("profile");
-                options.Scope.Add("kvr-api");
-                options.Scope.Add("offline_access");
+                foreach (var scope in authOptions.Scope)
+                {
+                    options.Scope.Add(scope);
+                }
 
                 options.MapInboundClaims = false;
                 options.ClaimActions.MapAll();
