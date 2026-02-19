@@ -22,19 +22,39 @@ public class Hooks
         _runContext.Fixture = new SharedFixture();
         await _runContext.Fixture.InitializeAsync();
 
+        var visual = false;
         _runContext.Playwright = await Playwright.CreateAsync();
         _runContext.Browser = await _runContext.Playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
-            Headless = true,
-            SlowMo = 0,
-            Channel = "msedge"
+            Headless = !visual,
+            SlowMo = visual? 200: 0,
+            //Channel = "msedge"
         });
+
+        // Sign in once and store auth state
+        var tempContext = await _runContext.Browser.NewContextAsync();
+        var tempPage = await tempContext.NewPageAsync();
+        await tempPage.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
+        {
+            ["X-CSRF"] = "1"
+        });
+
+        var serverAddress = _runContext.Fixture.FrontendServerFixture.RootUri.ToString();
+        await tempPage.GotoAsync(serverAddress + "test-login");
+
+        // Save cookies + localStorage
+        await tempContext.StorageStateAsync(new BrowserContextStorageStateOptions
+        {
+            Path = "storageState.json"
+        });
+
+        await tempContext.CloseAsync();
     }
 
     [BeforeScenario]
     public async Task BeforeScenario()
     {
-        _scenarioContext.BrowserContext = await _runContext.Browser.NewContextAsync();
+        _scenarioContext.BrowserContext = await _runContext.Browser.NewContextAsync(new() { StorageStatePath = "storageState.json" });
         _scenarioContext.Page = await _scenarioContext.BrowserContext.NewPageAsync();
         await _scenarioContext.Page.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
         {
@@ -42,9 +62,7 @@ public class Hooks
         });
 
         var serverAddress = _runContext.Fixture.FrontendServerFixture.RootUri.ToString();
-        await _scenarioContext.Page.GotoAsync(serverAddress);
-        await _scenarioContext.Page.GotoAsync(serverAddress + "test-login");
-        await _scenarioContext.Page.GotoAsync(serverAddress);
+        await _scenarioContext.Page.GotoAsync(serverAddress);        
     }
 
     [AfterScenario]
