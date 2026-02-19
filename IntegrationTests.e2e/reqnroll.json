@@ -1,6 +1,6 @@
 {
-  "$schema": "https://schemas.reqnroll.net/reqnroll-config-latest.json"
-  //"stepAssemblies": [
-  //  { "assembly": "IntegrationTests.e2e" }
-  //]
+  "$schema": "https://schemas.reqnroll.net/reqnroll-config-latest.json",
+  "execution": {
+    "testThreadCount": 1
+  }
 }
