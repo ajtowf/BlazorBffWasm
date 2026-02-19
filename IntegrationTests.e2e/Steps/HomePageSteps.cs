@@ -1,13 +1,14 @@
-﻿using Reqnroll;
+﻿using IntegrationTests.e2e.Support;
+using Reqnroll;
 
 namespace IntegrationTests.e2e.Steps;
 
 [Binding]
 public class HomePageSteps
 {
-    private readonly Support.TestContext _context;
+    private readonly TestScenarioContext _context;
 
-    public HomePageSteps(Support.TestContext context)
+    public HomePageSteps(TestScenarioContext context)
     {
         _context = context;
     }

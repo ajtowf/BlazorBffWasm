@@ -7,11 +7,11 @@ namespace IntegrationTests.e2e.Support;
 [Binding]
 public class Hooks
 {
-    private static TestContext _runContext = new();
+    private static TestRunContext _runContext = new();
 
-    private readonly TestContext _scenarioContext;
+    private readonly TestScenarioContext _scenarioContext;
 
-    public Hooks(TestContext scenarioContext)
+    public Hooks(TestScenarioContext scenarioContext)
     {
         _scenarioContext = scenarioContext;
     }
@@ -34,20 +34,14 @@ public class Hooks
     [BeforeScenario]
     public async Task BeforeScenario()
     {
-        // Copy run-level into scenario-level
-        _scenarioContext.Playwright = _runContext.Playwright;
-        _scenarioContext.Browser = _runContext.Browser;
-        _scenarioContext.Fixture = _runContext.Fixture;
-
-        // Setup clean browser context and page for each scenario
-        _scenarioContext.BrowserContext = await _scenarioContext.Browser.NewContextAsync(new BrowserNewContextOptions() { ViewportSize = ViewportSize.NoViewport });
+        _scenarioContext.BrowserContext = await _runContext.Browser.NewContextAsync();
         _scenarioContext.Page = await _scenarioContext.BrowserContext.NewPageAsync();
         await _scenarioContext.Page.SetExtraHTTPHeadersAsync(new Dictionary<string, string>
         {
             ["X-CSRF"] = "1"
         });
 
-        var serverAddress = _scenarioContext.Fixture.FrontendServerFixture.RootUri.ToString();
+        var serverAddress = _runContext.Fixture.FrontendServerFixture.RootUri.ToString();
         await _scenarioContext.Page.GotoAsync(serverAddress);
         await _scenarioContext.Page.GotoAsync(serverAddress + "test-login");
         await _scenarioContext.Page.GotoAsync(serverAddress);
