@@ -1,17 +1,20 @@
 ﻿@page "/"
 
+@using BlazorWasm.Components
+@using BlazorWasm
+@inject TodoService TodoService
+
 <PageTitle>Home</PageTitle>
 
 <h1>Hello, Blazor BFF!</h1>
 
 <AuthorizeView>
     <Authorized>
-        <dl>
-            @foreach (var claim in @context.User.Claims)
-            {
-                <dt>@claim.Type</dt>
-                <dd>@claim.Value</dd>
-            }
-        </dl>
+        <p>Welcome, @context.User.Identity.Name!</p>
+
+        <TodoList />
     </Authorized>
+    <NotAuthorized>
+        <p>Please sign in to view your todo list.</p>
+    </NotAuthorized>
 </AuthorizeView>

@@ -1,0 +1,121 @@
+@using BlazorWasm
+@inject TodoService TodoService
+@inject IJSRuntime JSRuntime
+
+<div class="todo-list">
+    <h2>Todo List</h2>
+
+    @if (isLoading)
+    {
+        <p>Loading todos...</p>
+    }
+    else if (todos.Count == 0)
+    {
+        <p>No todos yet. Add one below!</p>
+    }
+    else
+    {
+        <ul class="todo-items">
+            @foreach (var todo in todos)
+            {
+                <li class="todo-item @(todo.IsCompleted ? "completed" : "")">
+                    <div class="todo-content">
+                        <input type="checkbox" @onchange="() => ToggleTodo(todo)" checked="@todo.IsCompleted" />
+                        <span class="todo-title">@todo.Title</span>
+                    </div>
+                    <button class="btn btn-danger btn-sm" @onclick="() => DeleteTodo(todo.Id)">Delete</button>
+                </li>
+            }
+        </ul>
+    }
+
+    <div class="todo-form">
+        <input @bind="newTodoTitle" placeholder="What needs to be done?" />
+        <button class="btn btn-primary" @onclick="AddTodo">Add</button>
+    </div>
+</div>
+
+@code {
+    private List<Todo> todos = new();
+    private string newTodoTitle = string.Empty;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTodos();
+    }
+
+    private async Task LoadTodos()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            todos = await TodoService.GetTodosAsync();
+        }
+        catch (Exception ex)
+        {
+            // Handle error appropriately
+            Console.WriteLine($"Error loading todos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddTodo()
+    {
+        if (string.IsNullOrWhiteSpace(newTodoTitle))
+            return;
+
+        var newTodo = new Todo
+        {
+            Title = newTodoTitle.Trim()
+        };
+
+        try
+        {
+            await TodoService.AddTodoAsync(newTodo);
+            todos.Add(newTodo);
+            newTodoTitle = string.Empty;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Handle error appropriately
+            Console.WriteLine($"Error adding todo: {ex.Message}");
+        }
+    }
+
+    private async Task ToggleTodo(Todo todo)
+    {
+        todo.IsCompleted = !todo.IsCompleted;
+        try
+        {
+            await TodoService.UpdateTodoAsync(todo);
+        }
+        catch (Exception ex)
+        {
+            // Handle error appropriately
+            Console.WriteLine($"Error updating todo: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteTodo(int id)
+    {
+        try
+        {
+            await TodoService.DeleteTodoAsync(id);
+            todos = todos.Where(t => t.Id != id).ToList();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // Handle error appropriately
+            Console.WriteLine($"Error deleting todo: {ex.Message}");
+        }
+    }
+}
