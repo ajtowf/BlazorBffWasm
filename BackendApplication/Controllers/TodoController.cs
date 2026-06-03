@@ -1,4 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using BackendApplication.Context;
+using BackendApplication.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace BackendApplication.Controllers
 {
@@ -6,56 +9,68 @@ namespace BackendApplication.Controllers
     [Route("[controller]")]
     public class TodoController : ControllerBase
     {
-        private static readonly List<Todo> _todos = new();
-        private static int _nextId = 1;
+        private readonly TodoDbContext _context;
+
+        public TodoController(TodoDbContext context)
+        {
+            _context = context;
+        }
 
         [HttpGet]
-        public IActionResult GetTodos()
+        public async Task<ActionResult<IEnumerable<Todo>>> GetTodos()
         {
-            return Ok(_todos);
+            return await _context.Todos.ToListAsync();
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Todo>> GetTodo(int id)
+        {
+            var todo = await _context.Todos.FindAsync(id);
+
+            if (todo == null)
+            {
+                return NotFound();
+            }
+
+            return todo;
         }
 
         [HttpPost]
-        public IActionResult AddTodo([FromBody] Todo todo)
+        public async Task<ActionResult<Todo>> CreateTodo(Todo todo)
         {
-            if (todo == null)
-                return BadRequest("Todo cannot be null");
+            _context.Todos.Add(todo);
+            await _context.SaveChangesAsync();
 
-            if (string.IsNullOrWhiteSpace(todo.Title))
-                return BadRequest("Todo title cannot be empty");
-
-            todo.Id = _nextId++;
-            todo.CreatedAt = DateTime.UtcNow;
-            _todos.Add(todo);
-
-            return CreatedAtAction(nameof(GetTodos), new { id = todo.Id }, todo);
+            return CreatedAtAction(nameof(GetTodo), new { id = todo.Id }, todo);
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateTodo(int id, [FromBody] Todo todo)
+        public async Task<IActionResult> UpdateTodo(int id, Todo todo)
         {
-            if (todo == null)
-                return BadRequest("Todo cannot be null");
+            if (id != todo.Id)
+            {
+                return BadRequest();
+            }
 
-            var existingTodo = _todos.FirstOrDefault(t => t.Id == id);
-            if (existingTodo == null)
-                return NotFound($"Todo with id {id} not found");
+            _context.Entry(todo).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
 
-            existingTodo.Title = todo.Title;
-            existingTodo.IsCompleted = todo.IsCompleted;
-
-            return Ok(existingTodo);
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteTodo(int id)
+        public async Task<IActionResult> DeleteTodo(int id)
         {
-            var todo = _todos.FirstOrDefault(t => t.Id == id);
+            var todo = await _context.Todos.FindAsync(id);
             if (todo == null)
-                return NotFound($"Todo with id {id} not found");
+            {
+                return NotFound();
+            }
 
-            _todos.Remove(todo);
-            return Ok();
+            _context.Todos.Remove(todo);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }

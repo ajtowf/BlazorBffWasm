@@ -1,6 +1,8 @@
 ﻿using BackendApplication.Hubs;
 using BackendApplication.Options;
+using BackendApplication.Context;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 
 namespace BackendApplication;
@@ -24,6 +26,10 @@ public class Startup
         services.AddSignalR();
         services.AddControllers();
         services.AddHttpContextAccessor();
+
+        // Add EF Core
+        services.AddDbContext<TodoDbContext>(options =>
+            options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -62,9 +68,34 @@ public class Startup
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // Ensure database is created and migrated
+        using (var scope = app.ApplicationServices.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<TodoDbContext>();
+            context.Database.EnsureCreated();
+            SeedDatabase(context);
+        }
+
         app.UseEndpoints(endpoints => {
             endpoints.MapHub<ChatHub>("/chat");
             endpoints.MapControllers();
         });
+    }
+
+    private void SeedDatabase(TodoDbContext context)
+    {
+        if (!context.Todos.Any())
+        {
+            var todos = new List<Todo>
+            {
+                new Todo { Title = "Learn Blazor", IsCompleted = true },
+                new Todo { Title = "Build Todo App", IsCompleted = true },
+                new Todo { Title = "Implement EF Core", IsCompleted = false },
+                new Todo { Title = "Test Database Migration", IsCompleted = false }
+            };
+
+            context.Todos.AddRange(todos);
+            context.SaveChanges();
+        }
     }
 }

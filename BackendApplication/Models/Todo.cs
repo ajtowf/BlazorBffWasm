@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BackendApplication
+namespace BackendApplication.Models
 {
     public class Todo
     {
