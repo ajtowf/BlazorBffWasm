@@ -5,8 +5,6 @@ namespace BlazorWasm
     public class TodoService
     {
         private readonly HttpClient _httpClient;
-        private readonly List<Todo> _todos = new();
-        private int _nextId = 1;
 
         public TodoService(HttpClient httpClient)
         {
@@ -15,42 +13,63 @@ namespace BlazorWasm
 
         public async Task<List<Todo>> GetTodosAsync()
         {
-            // In a real app, this would call the backend API
-            // For now, we'll return the in-memory list
-            return _todos;
+            try
+            {
+                var response = await _httpClient.GetAsync("remoteapi/todo");
+                response.EnsureSuccessStatusCode();
+                var todos = await response.Content.ReadFromJsonAsync<List<Todo>>();
+                return todos ?? new List<Todo>();
+            }
+            catch (Exception)
+            {
+                // In a real app, you might want to handle this more gracefully
+                return new List<Todo>();
+            }
         }
 
         public async Task<Todo> AddTodoAsync(Todo todo)
         {
-            // In a real app, this would call the backend API
-            // For now, we'll store it in memory
-            todo.Id = _nextId++;
-            todo.CreatedAt = DateTime.UtcNow;
-            _todos.Add(todo);
-            return todo;
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync("remoteapi/todo", todo);
+                response.EnsureSuccessStatusCode();
+                var createdTodo = await response.Content.ReadFromJsonAsync<Todo>();
+                return createdTodo ?? todo;
+            }
+            catch (Exception)
+            {
+                // In a real app, you might want to handle this more gracefully
+                return todo;
+            }
         }
 
         public async Task<Todo> UpdateTodoAsync(Todo todo)
         {
-            // In a real app, this would call the backend API
-            // For now, we'll update it in memory
-            var existingTodo = _todos.FirstOrDefault(t => t.Id == todo.Id);
-            if (existingTodo != null)
+            try
             {
-                existingTodo.Title = todo.Title;
-                existingTodo.IsCompleted = todo.IsCompleted;
+                var response = await _httpClient.PutAsJsonAsync($"remoteapi/todo/{todo.Id}", todo);
+                response.EnsureSuccessStatusCode();
+                var updatedTodo = await response.Content.ReadFromJsonAsync<Todo>();
+                return updatedTodo ?? todo;
             }
-            return todo;
+            catch (Exception)
+            {
+                // In a real app, you might want to handle this more gracefully
+                return todo;
+            }
         }
 
         public async Task DeleteTodoAsync(int id)
         {
-            // In a real app, this would call the backend API
-            // For now, we'll remove it from memory
-            var todo = _todos.FirstOrDefault(t => t.Id == id);
-            if (todo != null)
+            try
             {
-                _todos.Remove(todo);
+                var response = await _httpClient.DeleteAsync($"remoteapi/todo/{id}");
+                response.EnsureSuccessStatusCode();
+            }
+            catch (Exception)
+            {
+                // In a real app, you might want to handle this more gracefully
+                throw;
             }
         }
     }
